@@ -1,0 +1,10 @@
+namespace radix;
+
+table Trie {
+    nodes: Node;
+}
+
+table Node {
+    prefix: [ubyte];
+    children: [Node];
+}
