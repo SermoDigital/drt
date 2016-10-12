@@ -14,7 +14,6 @@ import (
 
 // Trie is a read-only, on-disk radix tree.
 type Trie struct {
-	file *os.File
 	root *radix.Node
 	data []byte
 }
