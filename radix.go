@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/SermoDigital/drt/internal/radix"
-	"golang.org/x/sys/unix"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 )
@@ -26,28 +25,18 @@ func Open(path string) (*Trie, error) {
 	}
 	defer file.Close()
 
-	stat, err := file.Stat()
+	b, err := mmap(file)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := unix.Mmap(int(file.Fd()), 0, int(stat.Size()), unix.PROT_READ, unix.MAP_SHARED)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: MADV_DONTNEED?
-	err = unix.Madvise(b, unix.MADV_RANDOM)
-	if err != nil {
-		return nil, err
-	}
 	t := radix.GetRootAsTrie(b, 0)
 	return &Trie{data: b, root: t.Nodes(new(radix.Node))}, nil
 }
 
 // Close closes the raidx trie.
 func (t *Trie) Close() error {
-	return unix.Munmap(t.data)
+	return munmap(t.data)
 }
 
 // Has returns true if the Trie contains the given key.
