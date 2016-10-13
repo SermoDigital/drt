@@ -15,6 +15,9 @@ func mmap(file *os.File) ([]byte, error) {
 		return nil, err
 	}
 	b, err := unix.Mmap(int(file.Fd()), 0, int(stat.Size()), unix.PROT_READ, unix.MAP_SHARED)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: MADV_DONTNEED?
 	err = madvise(b, unix.MADV_RANDOM)

@@ -3,6 +3,8 @@ package drt
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -51,6 +53,13 @@ func (t *Trie) Has(key []byte) bool {
 	return true
 }
 
+func hasPrefix(s, prefix []byte) bool {
+	if len(prefix) == 0 {
+		return len(s) == 0
+	}
+	return bytes.HasPrefix(s, prefix)
+}
+
 func (t *Trie) findNode(n *radix.Node, key []byte) (*radix.Node, []byte) {
 	var m radix.Node
 	for i := 0; i < n.ChildrenLength(); i++ {
@@ -58,7 +67,7 @@ func (t *Trie) findNode(n *radix.Node, key []byte) (*radix.Node, []byte) {
 			break
 		}
 		pref := m.PrefixBytes()
-		if bytes.HasPrefix(key, pref) {
+		if hasPrefix(key, pref) {
 			return &m, key[len(pref):]
 		}
 	}
@@ -141,24 +150,39 @@ func (w *Writer) Insert(key string) {
 
 	// Partial match, so split the key
 	common := n.Prefix[:match]
-	n.Children = append(n.Children,
-		&node{Prefix: strings.TrimPrefix(n.Prefix, common)},
-		&node{Prefix: strings.TrimPrefix(key, common)},
-	)
+	// Create a new child node from the suffix.
+	child := &node{
+		Prefix:   strings.TrimPrefix(n.Prefix, common),
+		Children: n.Children,
+	}
+	// Append it _and_ the new node to the parent.
+	n.Children = []*node{
+		&node{Prefix: strings.TrimPrefix(key, common)}, child}
 	n.Prefix = common
+}
+
+func (n *node) dump() {
+	b, err := json.MarshalIndent(n, "  ", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s\n\n", b)
 }
 
 func (n *node) find(key string) (*node, int, string) {
 	for _, nv := range n.Children {
 		pl := prefixLen(key, nv.Prefix)
-		// Full match
-		if pl == len(nv.Prefix) {
-			return nv.find(key[pl:])
+		if pl == 0 {
+			continue
 		}
+
 		// Partial match
-		if pl > 0 && pl < len(nv.Prefix) {
+		if pl < len(nv.Prefix) {
 			return nv, pl, key
 		}
+
+		// Full match
+		return nv.find(key[pl:])
 	}
 	return n, 0, key
 }
