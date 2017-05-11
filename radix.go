@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SermoDigital/drt/internal/radix"
+	"github.com/sermodigital/drt/internal/radix"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 )
